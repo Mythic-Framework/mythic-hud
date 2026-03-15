@@ -9,12 +9,23 @@ const WindowListener = props => {
         if (type != null) dispatch({ type, payload: { ...data } });
     };
 
+    const handleNuiMessage = event => {
+        const { action, position } = event.data;
+        if (action === 'loadSpeedometerPosition' && position) {
+            window.postMessage({ type: 'LOAD_SPEEDOMETER_POSITION', position }, '*');
+        } else if (action === 'resetSpeedometerPosition') {
+            window.postMessage({ type: 'RESET_SPEEDOMETER_POSITION' }, '*');
+        }
+    };
+
     useEffect(() => {
         window.addEventListener('message', handleEvent);
+        window.addEventListener('message', handleNuiMessage);
 
         // returned function will be called on component unmount
         return () => {
             window.removeEventListener('message', handleEvent);
+            window.removeEventListener('message', handleNuiMessage);
         };
     }, []);
 

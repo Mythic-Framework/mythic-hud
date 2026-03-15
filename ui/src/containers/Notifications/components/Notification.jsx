@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { makeStyles } from '@mui/styles';
-import { Grid, Slide } from '@mui/material';
+import { Slide } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Moment from 'react-moment';
 import useInterval from 'react-useinterval';
@@ -8,68 +8,91 @@ import useInterval from 'react-useinterval';
 import { Sanitize } from '../../../util/Parser';
 import { useDispatch } from 'react-redux';
 
+const typeColors = {
+    success: { accent: '#208692', accentDim: 'rgba(32,134,146,0.4)' },
+    info: { accent: '#208692', accentDim: 'rgba(32,134,146,0.4)' },
+    warning: { accent: '#d4993d', accentDim: 'rgba(212,153,61,0.4)' },
+    error: { accent: '#c44040', accentDim: 'rgba(196,64,64,0.4)' },
+};
+
+const getColors = (type) => typeColors[type] || typeColors.info;
+
 const useStyles = makeStyles((theme) => ({
     alert: {
-        marginBottom: 10,
-        borderRadius: 4,
-        background: theme.palette.secondary.dark,
-        '&.success': {
-            background: theme.palette.success.main,
-        },
-        '&.warning': {
-            background: theme.palette.warning.dark,
-        },
-        '&.error': {
-            background: theme.palette.error.main,
-        },
-        '&.info': {
-            background: theme.palette.info.main,
+        position: 'relative',
+        background: 'rgba(18, 16, 37, 0.94)',
+        border: '1px solid rgba(32,134,146,0.15)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(32,134,146,0.04)',
+        overflow: 'hidden',
+        fontFamily: "'Oswald', sans-serif",
+    },
+    accentBar: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 3,
+    },
+    content: {
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 12,
+        padding: '12px 14px 12px 16px',
+    },
+    iconWrap: {
+        width: 32,
+        height: 32,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        fontSize: 14,
+        marginTop: 1,
+    },
+    textGroup: {
+        flex: 1,
+        minWidth: 0,
+    },
+    topRow: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 4,
+    },
+    typeLabel: {
+        fontSize: 9,
+        fontWeight: 600,
+        letterSpacing: '0.25em',
+        textTransform: 'uppercase',
+    },
+    pinIcon: {
+        fontSize: 9,
+        marginRight: 6,
+        opacity: 0.6,
+    },
+    timestamp: {
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.25)',
+        letterSpacing: '0.03em',
+    },
+    message: {
+        fontSize: 13,
+        fontWeight: 400,
+        color: 'rgba(255,255,255,0.75)',
+        letterSpacing: '0.02em',
+        lineHeight: 1.4,
+        '& b, & strong': {
+            color: '#208692',
+            fontWeight: 600,
         },
     },
-    header: {
-        padding: '5px 10px',
-        borderBottom: `1px solid ${theme.palette.border.divider}`,
-        '.success &': {
-            borderBottom: `1px solid ${theme.palette.success.light}`,
-        },
-        '.warning &': {
-            borderBottom: `1px solid ${theme.palette.warning.light}`,
-        },
-        '.error &': {
-            borderBottom: `1px solid ${theme.palette.error.light}`,
-        },
-        '.info &': {
-            borderBottom: `1px solid ${theme.palette.info.light}`,
-        },
+    progressBar: {
+        height: 2,
+        width: '100%',
     },
-    body: {
-        padding: 10,
-    },
-    barBg: {
-        height: 4,
-        background: theme.palette.secondary.light,
-        '.success &': {
-            background: theme.palette.success.dark,
-        },
-        '.warning &': {
-            background: theme.palette.warning.main,
-        },
-        '.error &': {
-            background: theme.palette.error.dark,
-        },
-        '.info &': {
-            background: theme.palette.info.dark,
-        },
-    },
-    bar: {
-        maxWidth: '100%',
+    progressTrack: {
         height: '100%',
         transition: 'width ease-in 0.15s',
-        background: theme.palette.text.primary,
-    },
-    sticky: {
-        marginRight: 10,
-        color: theme.palette.text.alt,
     },
 }));
 
@@ -79,6 +102,8 @@ export default ({ notification }) => {
 
     const [fin, setFin] = useState(false);
     const [timer, setTimer] = useState(0);
+
+    const colors = getColors(notification.type);
 
     const getTypeIcon = () => {
         switch (notification.type) {
@@ -90,6 +115,19 @@ export default ({ notification }) => {
                 return ['fas', 'circle-xmark'];
             default:
                 return ['fas', 'circle-info'];
+        }
+    };
+
+    const getTypeLabel = () => {
+        switch (notification.type) {
+            case 'success':
+                return 'Success';
+            case 'warning':
+                return 'Warning';
+            case 'error':
+                return 'Error';
+            default:
+                return 'Info';
         }
     };
 
@@ -129,22 +167,35 @@ export default ({ notification }) => {
         notification < 0 || timer >= notification.duration ? null : 100,
     );
 
+    const progress =
+        notification.duration > 0
+            ? 100 - (timer / notification.duration) * 100
+            : 0;
+
     return (
         <Slide direction="left" in={fin} onExited={onHide}>
             <div
-                className={`${classes.alert} ${notification.type}`}
+                className={classes.alert}
                 style={
                     Boolean(notification?.style?.alert)
                         ? { ...notification?.style?.alert }
-                        : null
+                        : { borderColor: `${colors.accentDim}` }
                 }
             >
-                <Grid container className={classes.header}>
-                    <Grid item xs={4}>
+                <div
+                    className={classes.accentBar}
+                    style={{ background: colors.accent }}
+                />
+                <div className={classes.content}>
+                    <div
+                        className={classes.iconWrap}
+                        style={{ color: colors.accent }}
+                    >
                         {notification.duration <= 0 && (
                             <FontAwesomeIcon
-                                className={classes.sticky}
+                                className={classes.pinIcon}
                                 icon="thumbtack"
+                                style={{ color: colors.accent }}
                             />
                         )}
                         <FontAwesomeIcon
@@ -154,60 +205,58 @@ export default ({ notification }) => {
                                     : getTypeIcon()
                             }
                         />
-                    </Grid>
-                    <Grid item xs={8} style={{ textAlign: 'right' }}>
-                        <Moment
-                            className={classes.postedTime}
-                            interval={60000}
-                            fromNow
-                            date={notification.created}
-                        />
-                    </Grid>
-                </Grid>
-                <div
-                    className={classes.body}
-                    style={
-                        Boolean(notification?.style?.body)
-                            ? { ...notification?.style?.body }
-                            : null
-                    }
-                >
-                    {Sanitize(notification.message)}
-                </div>
-                {notification.duration > 0 && (
-                    <div className={classes.progress}>
+                    </div>
+                    <div className={classes.textGroup}>
+                        <div className={classes.topRow}>
+                            <span
+                                className={classes.typeLabel}
+                                style={{ color: colors.accent }}
+                            >
+                                {getTypeLabel()}
+                            </span>
+                            <Moment
+                                className={classes.timestamp}
+                                interval={60000}
+                                fromNow
+                                date={notification.created}
+                            />
+                        </div>
                         <div
-                            className={classes.barBg}
+                            className={classes.message}
                             style={
-                                Boolean(notification?.style?.progressBg)
-                                    ? { ...notification?.style?.progressBg }
+                                Boolean(notification?.style?.body)
+                                    ? { ...notification?.style?.body }
                                     : null
                             }
                         >
-                            <div
-                                className={classes.bar}
-                                style={
-                                    Boolean(notification?.style?.progress)
-                                        ? {
-                                              ...notification?.style?.progress,
-                                              width: `${
-                                                  100 -
-                                                  (timer /
-                                                      notification.duration) *
-                                                      100
-                                              }%`,
-                                          }
-                                        : {
-                                              width: `${
-                                                  100 -
-                                                  (timer /
-                                                      notification.duration) *
-                                                      100
-                                              }%`,
-                                          }
-                                }
-                            ></div>
+                            {Sanitize(notification.message)}
                         </div>
+                    </div>
+                </div>
+                {notification.duration > 0 && (
+                    <div
+                        className={classes.progressBar}
+                        style={
+                            Boolean(notification?.style?.progressBg)
+                                ? { ...notification?.style?.progressBg }
+                                : { background: 'rgba(255,255,255,0.05)' }
+                        }
+                    >
+                        <div
+                            className={classes.progressTrack}
+                            style={
+                                Boolean(notification?.style?.progress)
+                                    ? {
+                                          ...notification?.style?.progress,
+                                          width: `${progress}%`,
+                                      }
+                                    : {
+                                          width: `${progress}%`,
+                                          background: colors.accent,
+                                          opacity: 0.6,
+                                      }
+                            }
+                        />
                     </div>
                 )}
             </div>

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useSelector } from 'react-redux';
 import { makeStyles } from '@mui/styles';
 
@@ -6,13 +6,17 @@ import Notification from './components/Notification';
 
 const useStyles = makeStyles((theme) => ({
     wrapper: {
-        maxWidth: 400,
+        maxWidth: 360,
         height: 'fit-content',
         width: '100%',
         position: 'absolute',
         padding: 10,
         right: 0,
         top: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        fontFamily: "'Oswald', sans-serif",
     },
 }));
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { connect } from 'react-redux';
-import { Grid, LinearProgress, Fade } from '@mui/material';
-import { withStyles, makeStyles } from '@mui/styles';
+import { Fade } from '@mui/material';
+import { makeStyles } from '@mui/styles';
 import useInterval from 'react-useinterval';
 
 import Nui from '../../util/Nui';
@@ -9,21 +9,76 @@ import Nui from '../../util/Nui';
 const useStyles = makeStyles((theme) => ({
     wrapper: {
         width: '100%',
-        maxWidth: 500,
+        maxWidth: 400,
         height: 'fit-content',
         position: 'absolute',
         bottom: '10%',
         left: 0,
         right: 0,
         margin: 'auto',
+        fontFamily: "'Oswald', sans-serif",
+    },
+    labelRow: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 8,
     },
     label: {
-        color: theme.palette.text.main,
         fontSize: 18,
-        textShadow: '0 0 5px #000',
+        fontWeight: 400,
+        color: 'rgba(255,255,255,0.95)',
+        letterSpacing: '0.03em',
+        textShadow: '0 1px 4px rgba(0,0,0,1), 0 0 12px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1)',
     },
-    progressbar: {
-        transition: 'none !important',
+    labelFinished: {
+        color: '#208692',
+        textShadow: '0 0 10px rgba(32,134,146,0.5), 0 1px 4px rgba(0,0,0,1), 0 0 2px rgba(0,0,0,1)',
+    },
+    labelFailed: {
+        color: '#c44040',
+        textShadow: '0 0 10px rgba(196,64,64,0.4), 0 1px 4px rgba(0,0,0,1), 0 0 2px rgba(0,0,0,1)',
+    },
+    time: {
+        fontSize: 15,
+        fontWeight: 400,
+        color: 'rgba(255,255,255,0.95)',
+        letterSpacing: '0.04em',
+        textShadow: '0 1px 4px rgba(0,0,0,1), 0 0 8px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,1)',
+    },
+    trackOuter: {
+        width: '100%',
+        height: 6,
+        background: 'rgba(255,255,255,0.08)',
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    trackFill: {
+        height: '100%',
+        background: '#208692',
+        transition: 'width 0.15s ease-out',
+        position: 'relative',
+        '&::after': {
+            content: '""',
+            position: 'absolute',
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: 20,
+            background: 'linear-gradient(90deg, transparent, rgba(32,134,146,0.6))',
+        },
+    },
+    trackFillFinished: {
+        background: '#208692',
+        '&::after': { display: 'none' },
+    },
+    trackFillFailed: {
+        background: '#c44040',
+        '&::after': { display: 'none' },
+    },
+    trackFillCancelled: {
+        background: '#c44040',
+        '&::after': { display: 'none' },
     },
 }));
 
@@ -40,24 +95,6 @@ const mapStateToProps = (state) => ({
 export default connect(mapStateToProps)(
     ({ cancelled, finished, failed, label, duration, startTime, dispatch }) => {
         const classes = useStyles();
-
-        const BorderLinearProgress = withStyles((theme) => ({
-            root: {
-                height: 8,
-            },
-            colorPrimary: {
-                backgroundColor: theme.palette.secondary.dark,
-            },
-            bar: {
-                borderRadius: 5,
-                backgroundColor:
-                    cancelled || failed
-                        ? theme.palette.primary.main
-                        : finished
-                        ? theme.palette.success.main
-                        : theme.palette.info.main,
-            },
-        }))(LinearProgress);
 
         const [curr, setCurr] = useState(0);
         const [fin, setFin] = useState(true);
@@ -112,42 +149,55 @@ export default connect(mapStateToProps)(
             });
         };
 
+        const pct = duration > 0 ? (curr / duration) * 100 : 0;
+
+        const getLabelText = () => {
+            if (finished) return 'Finished';
+            if (failed) return 'Failed';
+            if (cancelled) return 'Cancelled';
+            return label;
+        };
+
+        const getLabelClass = () => {
+            if (finished) return `${classes.label} ${classes.labelFinished}`;
+            if (failed || cancelled) return `${classes.label} ${classes.labelFailed}`;
+            return classes.label;
+        };
+
+        const getFillClass = () => {
+            if (finished) return `${classes.trackFill} ${classes.trackFillFinished}`;
+            if (failed) return `${classes.trackFill} ${classes.trackFillFailed}`;
+            if (cancelled) return `${classes.trackFill} ${classes.trackFillCancelled}`;
+            return classes.trackFill;
+        };
+
         useInterval(tick, curr > duration ? null : 10);
+
         return (
-            <Fade in={fin} duration={1000} onExited={hide}>
+            <Fade in={fin} timeout={1000} onExited={hide}>
                 <div className={classes.wrapper}>
-                    <Grid container className={classes.label}>
-                        <Grid item xs={6}>
-                            {finished
-                                ? 'Finished'
-                                : failed
-                                ? 'Failed'
-                                : cancelled
-                                ? 'Cancelled'
-                                : label}
-                        </Grid>
-                        <Grid item xs={6} style={{ textAlign: 'right' }}>
-                            {!cancelled && !finished && !failed && (
-                                <small>
-                                    {Math.round(curr / 1000)}s /{' '}
-                                    {Math.round(duration / 1000)}s
-                                </small>
-                            )}
-                        </Grid>
-                    </Grid>
-                    <BorderLinearProgress
-                        variant="determinate"
-                        classes={{
-                            determinate: classes.progressbar,
-                            bar: classes.progressbar,
-                            bar1: classes.progressbar,
-                        }}
-                        value={
-                            cancelled || finished || failed
-                                ? 100
-                                : (curr / duration) * 100
-                        }
-                    />
+                    <div className={classes.labelRow}>
+                        <span className={getLabelClass()}>
+                            {getLabelText()}
+                        </span>
+                        {!cancelled && !finished && !failed && (
+                            <span className={classes.time}>
+                                {Math.round(curr / 1000)}s / {Math.round(duration / 1000)}s
+                            </span>
+                        )}
+                    </div>
+                    <div className={classes.trackOuter}>
+                        <div
+                            className={getFillClass()}
+                            style={{
+                                width: `${
+                                    cancelled || finished || failed
+                                        ? 100
+                                        : pct
+                                }%`,
+                            }}
+                        />
+                    </div>
                 </div>
             </Fade>
         );

@@ -119,63 +119,35 @@ function RegisterChatCommands()
 		help = "Test Blindfold",
 	})
 
-	-- Chat:RegisterAdminCommand("notif", function(source, args, rawCommand)
-	-- 	exports["mythic-base"]:FetchComponent("Execute"):Client(source, "Notification", "Success", "This is a test, lul")
-	-- end, {
-	-- 	help = "Test Notification",
-	-- })
+	Chat:RegisterAdminCommand("sethealth", function(source, args, rawCommand)
+		local health = tonumber(args[1]) or 100
+		health = math.max(0, math.min(100, health))
+		TriggerClientEvent("Hud:SetHealth", source, health)
+	end, {
+		help = "Set health value 0-100 for testing",
+	})
 
-	-- Chat:RegisterAdminCommand("list", function(source, args, rawCommand)
-	-- 	TriggerClientEvent("ListMenu:Client:Test", source)
-	-- end, {
-	-- 	help = "Test List Menu",
-	-- })
+	Chat:RegisterAdminCommand("setarmor", function(source, args, rawCommand)
+		local armor = tonumber(args[1]) or 0
+		armor = math.max(0, math.min(100, armor))
+		TriggerClientEvent("Hud:SetArmor", source, armor)
+	end, {
+		help = "Set armor value 0-100 for testing",
+	})
 
-	-- Chat:RegisterAdminCommand("input", function(source, args, rawCommand)
-	-- 	TriggerClientEvent("Input:Client:Test", source)
-	-- end, {
-	-- 	help = "Test Input",
-	-- })
+	Chat:RegisterAdminCommand("sethunger", function(source, args, rawCommand)
+		local hunger = tonumber(args[1]) or 0
+		hunger = math.max(0, math.min(100, hunger))
+		TriggerClientEvent("Hud:SetHunger", source, hunger)
+	end, {
+		help = "Set hunger value 0-100 for testing",
+	})
 
-	-- Chat:RegisterAdminCommand("confirm", function(source, args, rawCommand)
-	-- 	TriggerClientEvent("Confirm:Client:Test", source)
-	-- end, {
-	-- 	help = "Test Confirm Dialog",
-	-- })
-
-	-- Chat:RegisterAdminCommand("skill", function(source, args, rawCommand)
-	-- 	TriggerClientEvent("Minigame:Client:Skillbar", source)
-	-- end, {
-	-- 	help = "Test Skill Bar",
-	-- })
-
-	-- Chat:RegisterAdminCommand("scan", function(source, args, rawCommand)
-	-- 	TriggerClientEvent("Minigame:Client:Scanner", source)
-	-- end, {
-	-- 	help = "Test Scanner",
-	-- })
-
-	-- Chat:RegisterAdminCommand("sequencer", function(source, args, rawCommand)
-	-- 	TriggerClientEvent("Minigame:Client:Sequencer", source)
-	-- end, {
-	-- 	help = "Test Sequencer",
-	-- })
-
-	-- Chat:RegisterAdminCommand("keypad", function(source, args, rawCommand)
-	-- 	TriggerClientEvent("Minigame:Client:Keypad", source)
-	-- end, {
-	-- 	help = "Test Keypad",
-	-- })
-
-	-- Chat:RegisterAdminCommand("scrambler", function(source, args, rawCommand)
-	-- 	TriggerClientEvent("Minigame:Client:Scrambler", source)
-	-- end, {
-	-- 	help = "Test Scrambler",
-	-- })
-
-	-- Chat:RegisterAdminCommand("memory", function(source, args, rawCommand)
-	-- 	TriggerClientEvent("Minigame:Client:Memory", source)
-	-- end, {
-	-- 	help = "Test Memory",
-	-- })
+	Chat:RegisterAdminCommand("setwater", function(source, args, rawCommand)
+		local water = tonumber(args[1]) or 0
+		water = math.max(0, math.min(100, water))
+		TriggerClientEvent("Hud:SetWater", source, water)
+	end, {
+		help = "Set water/thirst value 0-100 for testing",
+	})
 end

@@ -22,6 +22,7 @@ import InfoOverlay from '../../components/InfoOverlay';
 import { Progress, ThirdEye, GemTable } from '../../components';
 
 import Interaction from '../../components/Interaction';
+import DragMenu from '../../components/DragMenu';
 
 import LCD from '../../assets/fonts/lcd.ttf';
 import SniperScope from '../../components/SniperScope';
@@ -32,6 +33,8 @@ import Ingredients from '../../components/Meth';
 import DeathTexts from './DeathTexts';
 import Arcade from '../Arcade';
 import Flashbang from './Flashbang';
+import DevPanel from '../../components/DevPanel';
+import Ammo from '../../components/Ammo';
 
 library.add(fab, fas);
 
@@ -51,6 +54,18 @@ const App = ({ hidden }) => {
     const isInp = useSelector((state) => state.input.showing);
     const isConf = useSelector((state) => state.confirm.showing);
     const isMeth = useSelector((state) => state.meth.showing);
+    const [isDragMode, setIsDragMode] = React.useState(false);
+
+    useEffect(() => {
+        const handleNUIMessage = (event) => {
+            const data = event.data;
+            if (data.type === 'OPEN_DRAG_MENU') {
+                setIsDragMode(true);
+            }
+        };
+        window.addEventListener('message', handleNUIMessage);
+        return () => window.removeEventListener('message', handleNUIMessage);
+    }, []);
 
     const muiTheme = createTheme({
         typography: {
@@ -193,7 +208,7 @@ const App = ({ hidden }) => {
                 <Flashbang />
                 <DeathTexts />
                 <InfoOverlay />
-                <Hud />
+                <Hud isDragMode={isDragMode} />
                 <Notifications />
                 <Action />
                 {isMeth && <Ingredients />}
@@ -206,6 +221,9 @@ const App = ({ hidden }) => {
                 <Crosshair />
                 <SniperScope />
                 <GemTable />
+                <Ammo />
+                <DragMenu isDragMode={isDragMode} setIsDragMode={setIsDragMode} />
+                <DevPanel />
             </ThemeProvider>
         </StyledEngineProvider>
     );

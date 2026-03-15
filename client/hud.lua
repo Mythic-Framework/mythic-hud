@@ -47,6 +47,46 @@ function RetrieveComponents()
 	Admin = exports["mythic-base"]:FetchComponent("Admin")
 end
 
+function LoadMinimap()
+	CreateThread(function()
+		Wait(100)
+		SetMinimapClipType(1)
+		SetBlipAlpha(GetNorthRadarBlip(), 0)
+	end)
+end
+
+local _lastFuelUpdate = 0
+local _lastFuelCheck = 100
+
+function GetFuelLevel(vehicle)
+	if not vehicle or not DoesEntityExist(vehicle) then 
+		return _lastFuelCheck
+	end
+	
+	local fuel = 100
+	
+	-- First try native fuel level (most reliable)
+	local nativeFuel = GetVehicleFuelLevel(vehicle)
+	if nativeFuel and nativeFuel >= 0 then
+		-- GTA V native fuel returns 0-65, scale to 0-100
+		fuel = (nativeFuel / 65) * 100
+	else
+		-- Fallback to mythic-fuel if native doesn't work
+		if GetResourceState('mythic-fuel') == 'started' then
+			local success, result = pcall(function()
+				local fuelValue = exports['mythic-fuel']:GetFuel(vehicle)
+				return tonumber(fuelValue)
+			end)
+			if success and result and result >= 0 then
+				fuel = result
+			end
+		end
+	end
+	
+	_lastFuelCheck = math.max(0, math.min(100, math.floor(fuel)))
+	return _lastFuelCheck
+end
+
 AddEventHandler("Core:Shared:Ready", function()
 	exports["mythic-base"]:RequestDependencies("Hud", {
 		"Hud",
@@ -70,6 +110,7 @@ AddEventHandler("Core:Shared:Ready", function()
 			return
 		end
 		RetrieveComponents()
+		LoadMinimap()
 		-- Hud.Minimap:Set()
 
 		Keybinds:Add("show_interaction", "F1", "keyboard", "Hud - Show Interaction Menu", function()
@@ -181,18 +222,11 @@ HUD = {
 			return
 		end
 
-		local fuel = nil
-		if GLOBAL_VEH ~= nil and DoesEntityExist(GLOBAL_VEH) then
-			local vehState = Entity(GLOBAL_VEH).state
-			fuel = vehState.Fuel
-		end
-
 		SendNUIMessage({
 			type = "SHOW_HUD",
 			data = {
 				hp = (GetEntityHealth(PlayerPedId()) - 100),
 				armor = GetPedArmour(PlayerPedId()),
-				fuel = fuel,
 			},
 		})
 		_toggled = true
@@ -272,6 +306,17 @@ HUD = {
 				type = "SHOW_VEHICLE",
 			})
 			_vehToggled = true
+			
+			-- Send initial fuel value immediately
+			if GLOBAL_VEH and DoesEntityExist(GLOBAL_VEH) then
+				Wait(50)
+				local initialFuel = GetFuelLevel(GLOBAL_VEH)
+				SendNUIMessage({
+					type = "UPDATE_FUEL",
+					data = { fuel = initialFuel, fuelHide = false },
+				})
+			end
+			
 			StartVehicleThreads()
 		end,
 		Hide = function(self)
@@ -596,14 +641,9 @@ function StartThreads()
 					data = { location = GetLocation() },
 				})
 				Wait(200)
-				SendNUIMessage({
-					type = "UPDATE_HP",
-					data = {
-						hp = (GetEntityHealth(LocalPlayer.state.ped) - 100),
-						armor = GetPedArmour(LocalPlayer.state.ped),
-					},
-				})
-				Wait(200)
+				
+				-- Do NOT send armor here - it's handled by the dedicated armor thread
+				Wait(30)
 			else
 				if not IsPauseMenuActive() then
 					SendNUIMessage({
@@ -619,6 +659,31 @@ function StartThreads()
 				end
 				Wait(400)
 			end
+		end
+	end)
+
+	-- Dedicated armor/health update thread - always running to catch armor changes immediately
+	CreateThread(function()
+		while _toggled do
+			if not IsPauseMenuActive() then
+				local ped = LocalPlayer.state.ped
+				if ped and DoesEntityExist(ped) then
+					local currentHealth = GetEntityHealth(ped) - 100
+					local currentArmor = GetPedArmour(ped)
+					SendNUIMessage({
+						type = "UPDATE_HP",
+						data = {
+							hp = currentHealth,
+							armor = math.min(100, currentArmor * 2),
+						},
+					})
+				end
+				-- Suppress native GTA weapon/ammo HUD components
+				HideHudComponentThisFrame(3)  -- weapon icon
+				HideHudComponentThisFrame(4)  -- ammo count
+				HideHudComponentThisFrame(20) -- weapon wheel
+			end
+			Wait(50)
 		end
 	end)
 end
@@ -643,10 +708,28 @@ function StartVehicleThreads()
 	CreateThread(function()
 		DisplayRadar(true)
 		while _vehToggled do
-			local speed = math.ceil(GetEntitySpeed(GLOBAL_VEH) * 2.237)
+			local speed = math.floor(GetEntitySpeed(GLOBAL_VEH) * 2.237)
+			local engineHealth = 0
+			local fuel = 0
+			if GLOBAL_VEH and DoesEntityExist(GLOBAL_VEH) then
+				local maxEngineHealth = 1000.0 -- Default max engine health
+				local currentEngineHealth = GetVehicleEngineHealth(GLOBAL_VEH)
+				if currentEngineHealth > 0 then
+					engineHealth = math.ceil((currentEngineHealth / maxEngineHealth) * 100)
+				end
+				fuel = GetFuelLevel(GLOBAL_VEH)
+			end
 			SendNUIMessage({
 				type = "UPDATE_SPEED",
 				data = { speed = speed },
+			})
+			SendNUIMessage({
+				type = "UPDATE_ENGINE_HEALTH",
+				data = { engineHealth = engineHealth },
+			})
+			SendNUIMessage({
+				type = "UPDATE_FUEL",
+				data = { fuel = fuel, fuelHide = false },
 			})
 			Wait(100)
 		end
@@ -725,6 +808,62 @@ end
 
 CreateThread(function()
 	SetRadarZoom(1200)
+	-- Note: Most radar positioning functions don't exist in FiveM
+	-- Minimap positioning will need to be handled differently
+end)
+
+-- Test commands for setting health and armor
+RegisterNetEvent("Hud:SetHealth", function(healthValue)
+	local ped = PlayerPedId()
+	local maxHealth = GetEntityMaxHealth(ped)
+	local newHealth = 100 + (healthValue or 100)
+	SetEntityHealth(ped, newHealth)
+	SendNUIMessage({
+		type = "UPDATE_HP",
+		data = {
+			hp = healthValue or 100,
+			armor = GetPedArmour(ped) * 2,
+		},
+	})
+end)
+
+RegisterNetEvent("Hud:SetArmor", function(armorValue)
+	local ped = PlayerPedId()
+	local armorToSet = math.floor(armorValue / 2)
+	SetPedArmour(ped, armorToSet) -- Use SetPedArmour instead of AddArmourToEntity
+	SendNUIMessage({
+		type = "UPDATE_HP",
+		data = {
+			hp = (GetEntityHealth(ped) - 100),
+			armor = math.min(100, armorValue * 2),
+		},
+	})
+end)
+
+RegisterNetEvent("Hud:SetHunger", function(hungerValue)
+	SendNUIMessage({
+		type = "UPDATE_STATUS_VALUE",
+		data = {
+			name = "hunger",
+			value = hungerValue,
+		},
+	})
+end)
+
+RegisterNetEvent("Hud:SetWater", function(waterValue)
+	SendNUIMessage({
+		type = "UPDATE_STATUS_VALUE",
+		data = {
+			name = "thirst",
+			value = waterValue,
+		},
+	})
+end)
+
+RegisterNetEvent("Hud:Client:OpenDragMenu", function()
+	SendNUIMessage({
+		type = "OPEN_DRAG_MENU",
+	})
 end)
 
 -- function DoRadarFix()
@@ -739,3 +878,54 @@ end)
 -- 		SetRadarZoom(_zoomLevels[_zoomLevel])
 -- 	end)
 -- end
+
+local function loadMap()
+	CreateThread(function()
+		Wait(50)
+		local defaultAspectRatio = 1920 / 1080
+		local resolutionX, resolutionY = GetActiveScreenResolution()
+		local aspectRatio = resolutionX / resolutionY
+		local minimapOffset = 0
+		if aspectRatio > defaultAspectRatio then
+			minimapOffset = ((defaultAspectRatio - aspectRatio) / 3.6) - 0.02
+		end
+
+		RequestStreamedTextureDict('squaremap', false)
+		while not HasStreamedTextureDictLoaded('squaremap') do
+			Wait(0)
+		end
+
+		SetMinimapClipType(1)
+		AddReplaceTexture('platform:/textures/graphics', 'radarmasksm', 'squaremap', 'radarmasksm')
+		AddReplaceTexture('platform:/textures/graphics', 'radarmasksm', 'squaremap', 'radarmasksm')
+		SetMinimapComponentPosition('minimap', 'L', 'B', 0.0 + 0.01, -0.047 + -0.035, 0.1638, 0.183)
+		SetMinimapComponentPosition('minimap_mask', 'L', 'B', 0.0 + 0.01, 0.0 + -0.035, 0.128, 0.20)
+		SetMinimapComponentPosition('minimap_blur', 'L', 'B', -0.01 + 0.01, 0.025 + -0.035, 0.262, 0.300)
+		SetBlipAlpha(GetNorthRadarBlip(), 0)
+		SetMinimapClipType(1)
+		SetBigmapActive(true, false)
+		Wait(50)
+		SetBigmapActive(false, false)
+		SetStreamedTextureDictAsNoLongerNeeded('squaremap')
+	end)
+end
+
+CreateThread(function()
+	local minimap = RequestScaleformMovie('minimap')
+	if not HasScaleformMovieLoaded(minimap) then
+		RequestScaleformMovie(minimap)
+		while not HasScaleformMovieLoaded(minimap) do
+			Wait(1)
+		end
+	end
+	while true do
+		SetBigmapActive(false, false)
+		SetRadarZoom(1000)
+		Wait(500)
+	end
+end)
+
+CreateThread(function()
+	Wait(1000)
+	loadMap()
+end)

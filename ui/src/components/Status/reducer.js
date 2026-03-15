@@ -3,6 +3,13 @@ export const initialState = {
     armor: 100,
     isDead: false,
     statuses: [],
+    isTalking: false,
+    isTalkingOnRadio: false,
+    isOnRadio: false,
+    isOnPhone: false,
+    voiceRange: 2,
+    hunger: 100,
+    thirst: 100,
 };
 
 export default (state = initialState, action) => {
@@ -51,6 +58,21 @@ export default (state = initialState, action) => {
             return {
                 ...state,
                 statuses: action.payload.statuses,
+            };
+        case 'UPDATE_VOICE':
+            return {
+                ...state,
+                isTalking: action.payload.isTalking || state.isTalking,
+                isTalkingOnRadio: action.payload.isTalkingOnRadio || state.isTalkingOnRadio,
+                isOnRadio: action.payload.isOnRadio || state.isOnRadio,
+                isOnPhone: action.payload.isOnPhone || state.isOnPhone,
+                voiceRange: action.payload.voiceRange !== undefined ? action.payload.voiceRange : state.voiceRange,
+            };
+        case 'UPDATE_NEEDS':
+            return {
+                ...state,
+                hunger: action.payload.hunger !== undefined ? action.payload.hunger : state.hunger,
+                thirst: action.payload.thirst !== undefined ? action.payload.thirst : state.thirst,
             };
         default:
             return state;

@@ -86,6 +86,48 @@ PROGRESS = {
 		if _mdfr ~= 1.0 then return false end
 		_mdfr = p / 100.0
 		runMdfr(t)
+		
+		-- Register boost as a status using the HUD component
+		local HUD = exports["mythic-base"]:FetchComponent("Hud")
+		if HUD then
+			HUD:RegisterStatus('boost', 100, 100, 'bolt', '#ffd43b', true, false, {
+				id = 3,
+				hideZero = true,
+				visibleWhileDead = false
+			})
+			
+			-- Gradually decrease boost over time
+			local duration = t -- in milliseconds
+			local intervals = 10 -- number of update intervals
+			local intervalTime = duration / intervals
+			local decrement = 100 / intervals
+			
+			for i = 1, intervals do
+				Citizen.SetTimeout(intervalTime * i, function()
+					local currentValue = math.max(0, 100 - (decrement * i))
+					-- Send NUI message directly to update status
+					SendNUIMessage({
+						type = "UPDATE_STATUS",
+						data = {
+							status = {
+								name = 'boost',
+								value = currentValue,
+								max = 100,
+								icon = 'bolt',
+								color = '#ffd43b',
+								flash = currentValue > 0,
+								options = {
+									id = 3,
+									hideZero = true,
+									visibleWhileDead = false
+								}
+							}
+						}
+					})
+				end)
+			end
+		end
+		
 		return true
 	end,
 	Cancel = function(self, force)

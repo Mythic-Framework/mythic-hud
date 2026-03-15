@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { Fade } from '@mui/material';
 import { makeStyles } from '@mui/styles';
 
-import { Location, Status, Vehicle } from '../../components';
+import { Location, Status, Vehicle, Minimap } from '../../components';
 
 const useStyles = makeStyles((theme) => ({
     wrapper: {
@@ -23,6 +23,7 @@ export default () => {
                 <Location />
                 <Status />
                 <Vehicle />
+                <Minimap />
             </div>
         </Fade>
     );
