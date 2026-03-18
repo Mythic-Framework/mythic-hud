@@ -50,7 +50,7 @@ end
 function LoadMinimap()
 	CreateThread(function()
 		Wait(100)
-		SetMinimapClipType(1)
+		SetMinimapClipType(0)
 		SetBlipAlpha(GetNorthRadarBlip(), 0)
 	end)
 end
@@ -247,7 +247,9 @@ HUD = {
 		_toggled = false
 
 		if Phone ~= nil and not Phone:IsOpen() then
-			DisplayRadar(false)
+			if GLOBAL_VEH == nil then
+				DisplayRadar(false)
+			end
 		end
 		Hud.Vehicle:Hide()
 	end,
@@ -285,7 +287,9 @@ HUD = {
 			end
 		else
 			if Phone ~= nil and not Phone:IsOpen() then
-				DisplayRadar(false)
+				if GLOBAL_VEH == nil then
+					DisplayRadar(false)
+				end
 			end
 			Hud.Vehicle:Hide()
 		end
@@ -895,14 +899,14 @@ local function loadMap()
 			Wait(0)
 		end
 
-		SetMinimapClipType(1)
+		SetMinimapClipType(0)
 		AddReplaceTexture('platform:/textures/graphics', 'radarmasksm', 'squaremap', 'radarmasksm')
 		AddReplaceTexture('platform:/textures/graphics', 'radarmasksm', 'squaremap', 'radarmasksm')
 		SetMinimapComponentPosition('minimap', 'L', 'B', 0.0 + 0.01, -0.047 + -0.035, 0.1638, 0.183)
 		SetMinimapComponentPosition('minimap_mask', 'L', 'B', 0.0 + 0.01, 0.0 + -0.035, 0.128, 0.20)
 		SetMinimapComponentPosition('minimap_blur', 'L', 'B', -0.01 + 0.01, 0.025 + -0.035, 0.262, 0.300)
 		SetBlipAlpha(GetNorthRadarBlip(), 0)
-		SetMinimapClipType(1)
+		SetMinimapClipType(0)
 		SetBigmapActive(true, false)
 		Wait(50)
 		SetBigmapActive(false, false)
@@ -919,8 +923,11 @@ CreateThread(function()
 		end
 	end
 	while true do
-		SetBigmapActive(false, false)
-		SetRadarZoom(1000)
+		-- Only enforce zoom when on foot; in a vehicle GTA manages zoom
+		-- and calling SetRadarZoom during camera rotation clears blips
+		if not IsPedInAnyVehicle(PlayerPedId(), false) then
+			SetRadarZoom(1000)
+		end
 		Wait(500)
 	end
 end)
