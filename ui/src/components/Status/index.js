@@ -139,12 +139,14 @@ const useStyles = makeStyles((theme) => ({
         position: 'absolute',
         width: '0.4vh',
         height: '100%',
+        borderRadius: '1vh',
         backgroundColor: 'rgba(0, 0, 0, 0.6)',
     },
     statBar: {
         position: 'absolute',
         bottom: '0vh',
         width: '100%',
+        borderRadius: '1vh',
         transition: 'height 0.2s ease',
     },
     barIcon: {
