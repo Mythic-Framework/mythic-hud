@@ -8,6 +8,7 @@ function RetrieveComponents()
 	Callbacks = exports["mythic-base"]:FetchComponent("Callbacks")
 	Inventory = exports["mythic-base"]:FetchComponent("Inventory")
 	Execute = exports["mythic-base"]:FetchComponent("Execute")
+	Version = exports["mythic-base"]:FetchComponent("Version")
 	RegisterChatCommands()
 end
 
@@ -19,11 +20,14 @@ AddEventHandler("Core:Shared:Ready", function()
 		"Callbacks",
 		"Inventory",
 		"Execute",
+		"Version",
 	}, function(error)
 		if #error > 0 then
 			return
 		end -- Do something to handle if not all dependencies loaded
 		RetrieveComponents()
+
+		Version:Check('Mythic-Framework/Mythic-VersionCheckers', GetCurrentResourceName())
 
 		Callbacks:RegisterServerCallback("HUD:RemoveBlindfold", function(source, data, cb)
 			local plyr = Fetch:Source(source)
