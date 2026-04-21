@@ -15,7 +15,7 @@ RegisterCommand('sethunger', function(source, args)
         multiline = true,
         args = {"System", "Hunger set to " .. hunger .. "%"}
     })
-end, false)
+end, true)
 
 RegisterCommand('setwater', function(source, args)
     local water = tonumber(args[1]) or 100
@@ -33,7 +33,7 @@ RegisterCommand('setwater', function(source, args)
         multiline = true,
         args = {"System", "Water set to " .. water .. "%"}
     })
-end, false)
+end, true)
 
 RegisterCommand('setboost', function(source, args)
     local boost = tonumber(args[1]) or 0
@@ -51,5 +51,5 @@ RegisterCommand('setboost', function(source, args)
         multiline = true,
         args = {"System", "Boost " .. (hasBoost and "enabled" or "disabled")}
     })
-end, false)
+end, true)
 
